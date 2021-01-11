@@ -1,7 +1,6 @@
 package studentorder.domain;
 
-public class RegisterOffice
-{
+public class RegisterOffice {
     private long officeId;
     private String officeAreaId;
     private String officeName;
@@ -9,7 +8,7 @@ public class RegisterOffice
     public RegisterOffice() {
     }
 
-public RegisterOffice(long officeId, String officeAreaId, String officeName) {
+    public RegisterOffice(long officeId, String officeAreaId, String officeName) {
         this.officeId = officeId;
         this.officeAreaId = officeAreaId;
         this.officeName = officeName;

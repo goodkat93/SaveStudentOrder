@@ -1,7 +1,6 @@
 package studentorder.domain;
 
-public class Street
-{
+public class Street {
     private Long streetCode;
     private String streetName;
 

@@ -1,6 +1,6 @@
 package studentorder.domain;
 
-public class  Address {
+public class Address {
 
     private String postCode;
     private Street street;
@@ -8,7 +8,7 @@ public class  Address {
     private String extension; // корпус
     private String apartment;
 
-    public Address(){
+    public Address() {
     }
 
     public Address(String postCode, Street street, String building, String extension, String apartment) {

@@ -19,7 +19,7 @@ public class StudentOrderValidator {
     private StudentValidator studentVal;
     private MailSender mailSender;
 
-    public StudentOrderValidator(){
+    public StudentOrderValidator() {
         cityRegisterVal = new CityRegisterValidator();
         marriageVal = new MarriageValidator();
         childrenVal = new ChildrenValidator();
@@ -32,7 +32,8 @@ public class StudentOrderValidator {
         StudentOrderValidator sov = new StudentOrderValidator();
         sov.checkAll();
     }
-    public void checkAll(){
+
+    public void checkAll() {
         List<StudentOrder> studentOrderList = readStudentOrders();
 
         for (StudentOrder studentOrder : studentOrderList) {
@@ -40,10 +41,10 @@ public class StudentOrderValidator {
         }
     }
 
-    public List<StudentOrder> readStudentOrders(){
+    public List<StudentOrder> readStudentOrders() {
         List<StudentOrder> studentOrderList = new LinkedList<>();
 
-        for (int c = 0; c < 5; c++){
+        for (int c = 0; c < 5; c++) {
             StudentOrder studentOrder = SaveStudentOrder.buildStudentOrder(c);
             studentOrderList.add(studentOrder);
         }
@@ -51,7 +52,7 @@ public class StudentOrderValidator {
         return studentOrderList;
     }
 
-    public void checkOneOrder(StudentOrder studentOrder){
+    public void checkOneOrder(StudentOrder studentOrder) {
         AnswerCityRegister cityAnswer = checkCityRegister(studentOrder);
 //        AnswerMarriage marAnswer = checkMarriage(studentOrder);
 //        AnswerChildren childAnswer = checkChildren(studentOrder);
@@ -60,19 +61,23 @@ public class StudentOrderValidator {
 //        sendMail(studentOrder);
     }
 
-    public AnswerCityRegister checkCityRegister (StudentOrder studentOrder) {
+    public AnswerCityRegister checkCityRegister(StudentOrder studentOrder) {
         return cityRegisterVal.checkCityRegister(studentOrder);
     }
-    public AnswerMarriage checkMarriage(StudentOrder studentOrder){
+
+    public AnswerMarriage checkMarriage(StudentOrder studentOrder) {
         return marriageVal.checkMarriage(studentOrder);
     }
-    public AnswerChildren checkChildren(StudentOrder studentOrder){
+
+    public AnswerChildren checkChildren(StudentOrder studentOrder) {
         return childrenVal.checkChildren(studentOrder);
     }
-    public AnswerStudent checkStudent(StudentOrder studentOrder){
+
+    public AnswerStudent checkStudent(StudentOrder studentOrder) {
         return studentVal.checkStudent(studentOrder);
     }
-    public void sendMail(StudentOrder studentOrder){
+
+    public void sendMail(StudentOrder studentOrder) {
         mailSender.sendMail(studentOrder);
     }
 
