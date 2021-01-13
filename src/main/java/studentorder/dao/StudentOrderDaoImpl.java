@@ -42,32 +42,39 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
 
         Long result = -1L;
         try (Connection con = getConnection(); // connection надо закрывать, try/catch открывает и закрывает автоматически
-             PreparedStatement stmt = con.prepareStatement(INSERT_ORDER, new String[]{"student_order_id"})) {
+             PreparedStatement stmt = con.prepareStatement(INSERT_ORDER, new String[]{"student_order_id"})) { //student_order_id получаем id Только что вставленной колонки
+
+            con.setAutoCommit(false); // теперь мы сами управляем транзакциями
+            //при true, если ошибка, то все равно часть добавляется
+
+            try {
+                // Header
+                stmt.setInt(1, StudentOrderStatus.START.ordinal());
+                stmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+
+                //Husband and Wife
+                setParamsForAdult(stmt, 3, studentOrder.getHusband());
+                setParamsForAdult(stmt, 16, studentOrder.getWife());
 
 
-            // Header
-            stmt.setInt(1, StudentOrderStatus.START.ordinal());
-            stmt.setTimestamp(2, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+                //Marriage/Wedding
+                stmt.setString(29, studentOrder.getMarriageCertificateID());
+                stmt.setLong(30, studentOrder.getMarriageOffice().getOfficeId());
+                stmt.setDate(31, java.sql.Date.valueOf(studentOrder.getMarriageDate()));
 
-            //Husband and Wife
-            setParamsForAdult(stmt, 3, studentOrder.getHusband());
-            setParamsForAdult(stmt, 16, studentOrder.getWife());
+                stmt.executeUpdate(); // возвращает кол-во записей, затронутых изменениями
+                ResultSet gkRs = stmt.getGeneratedKeys();
+                if (gkRs.next()) {
+                    result = gkRs.getLong(1);
+                }
+                gkRs.close(); // автоматически закрывается, можно не писать
 
+                saveChildren(con, studentOrder, result);
+                con.commit(); // соглашаемся с
 
-            //Marriage/Wedding
-            stmt.setString(29, studentOrder.getMarriageCertificateID());
-            stmt.setLong(30, studentOrder.getMarriageOffice().getOfficeId());
-            stmt.setDate(31, java.sql.Date.valueOf(studentOrder.getMarriageDate()));
-
-            stmt.executeUpdate();
-            ResultSet gkRs = stmt.getGeneratedKeys();
-            if (gkRs.next()) {
-                result = gkRs.getLong(1);
+            } catch (SQLException ex) {
+                con.rollback(); // в конце говоритм все коммитим или нет
             }
-            gkRs.close(); // автоматически закрывается, можно не писать
-
-            saveChildren(con, studentOrder, result);
-
 
         } catch (SQLException ex) {
             throw new DaoException(ex);
@@ -77,12 +84,18 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
 
     private void saveChildren(Connection con, StudentOrder studentOrder, Long soId) throws SQLException {
         try (PreparedStatement stmt = con.prepareStatement(INSERT_CHILD)) {
+            int counter = 0; // при больших объёмах записей
             for (Child child : studentOrder.getChildren()) {
                 stmt.setLong(1, soId);
                 setParamsForChild(stmt, child);
-                stmt.executeUpdate();
-
-
+                stmt.addBatch(); // добавить в пакет
+                counter++;
+                if(counter > 10000){ // при больших объёмах записей
+                    stmt.executeBatch(); // для каждой команды накапливает изменения и возвращает массив (сбрасывает)
+                }
+            }
+            if (counter > 0) { // при больших объёмах записей
+                stmt.executeBatch();
             }
 
         }
