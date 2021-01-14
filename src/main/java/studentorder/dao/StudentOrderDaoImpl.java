@@ -6,6 +6,8 @@ import studentorder.exception.DaoException;
 
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.LinkedList;
+import java.util.List;
 
 public class StudentOrderDaoImpl implements StudentOrderDao {
 
@@ -13,11 +15,11 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
             "INSERT INTO jc_student_order(" +
                     "            student_order_status, student_order_date, h_sur_name, h_given_name, h_patronymic," +
                     "    h_date_of_birth, h_passport_serial, h_passport_number, h_passport_date, h_passport_office_id, h_post_index," +
-                    "    h_street_code, h_building, h_extension, h_apartment, w_sur_name, w_given_name," +
+                    "    h_street_code, h_building, h_extension, h_apartment, h_university_id, h_student_number, w_sur_name, w_given_name," +
                     "    w_patronymic, w_date_of_birth, w_passport_serial, w_passport_number, w_passport_date, w_passport_office_id," +
-                    "    w_post_index, w_street_code, w_building, w_extension, w_apartment," +
+                    "    w_post_index, w_street_code, w_building, w_extension, w_apartment, w_university_id, w_student_number," +
                     "    certificate_id, register_office_id, marriage_date)" +
-                    "    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     public static final String INSERT_CHILD =
             "INSERT INTO public.jc_student_child(" +
@@ -25,6 +27,10 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
                     " c_certificate_number, c_certificate_date, c_register_office_id, c_post_index, c_street_code," +
                     " c_building, c_extension, c_apartment)" +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+
+
+    private static final String SELECT_ORDERS =
+            "SELECT * FROM jc_student_order WHERE student_order_status = 0 ORDER BY student_order_date";
 
 
     //TODO refactoring - make one method
@@ -54,13 +60,13 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
 
                 //Husband and Wife
                 setParamsForAdult(stmt, 3, studentOrder.getHusband());
-                setParamsForAdult(stmt, 16, studentOrder.getWife());
+                setParamsForAdult(stmt, 18, studentOrder.getWife());
 
 
                 //Marriage/Wedding
-                stmt.setString(29, studentOrder.getMarriageCertificateID());
-                stmt.setLong(30, studentOrder.getMarriageOffice().getOfficeId());
-                stmt.setDate(31, java.sql.Date.valueOf(studentOrder.getMarriageDate()));
+                stmt.setString(33, studentOrder.getMarriageCertificateID());
+                stmt.setLong(34, studentOrder.getMarriageOffice().getOfficeId());
+                stmt.setDate(35, java.sql.Date.valueOf(studentOrder.getMarriageDate()));
 
                 stmt.executeUpdate(); // возвращает кол-во записей, затронутых изменениями
                 ResultSet gkRs = stmt.getGeneratedKeys();
@@ -74,6 +80,7 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
 
             } catch (SQLException ex) {
                 con.rollback(); // в конце говоритм все коммитим или нет
+                throw ex;
             }
 
         } catch (SQLException ex) {
@@ -81,6 +88,46 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
         }
         return result;
     }
+
+    @Override
+    public List<StudentOrder> getStudentOrders() throws DaoException {
+        List<StudentOrder> result = new LinkedList<>();
+        try (Connection con = getConnection(); // connection надо закрывать, try/catch открывает и закрывает автоматически
+             PreparedStatement stmt = con.prepareStatement(SELECT_ORDERS)) {//student_order_id получаем id Только что вставленной колонки
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                StudentOrder studentOrder = new StudentOrder();
+                fillStudentOrder(rs, studentOrder);
+                fillMarriage(rs, studentOrder);
+
+                result.add(studentOrder);
+            }
+
+            rs.close();
+
+        } catch (SQLException ex) {
+            throw new DaoException(ex);
+        }
+
+        return result;
+    }
+
+
+    private void fillStudentOrder(ResultSet rs, StudentOrder studentOrder) throws SQLException {
+        studentOrder.setStudentOrderID(rs.getLong("student_order_id"));
+        studentOrder.setStudentOrderDate(rs.getTimestamp("student_order_date").toLocalDateTime());
+        studentOrder.setStudentOrderStatus(StudentOrderStatus.fromValue(rs.getInt("student_order_status")));
+    }
+
+    private void fillMarriage(ResultSet rs, StudentOrder studentOrder) throws SQLException {
+        studentOrder.setMarriageCertificateID(rs.getString("certificate_id"));
+        studentOrder.setMarriageDate(rs.getDate("marriage_date").toLocalDate());
+
+        long roID = rs.getLong("register_office_id");
+        RegisterOffice ro = new RegisterOffice(roID, "", "");
+        studentOrder.setMarriageOffice(ro);
+    }
+
 
     private void saveChildren(Connection con, StudentOrder studentOrder, Long soId) throws SQLException {
         try (PreparedStatement stmt = con.prepareStatement(INSERT_CHILD)) {
@@ -90,7 +137,7 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
                 setParamsForChild(stmt, child);
                 stmt.addBatch(); // добавить в пакет
                 counter++;
-                if(counter > 10000){ // при больших объёмах записей
+                if (counter > 10000) { // при больших объёмах записей
                     stmt.executeBatch(); // для каждой команды накапливает изменения и возвращает массив (сбрасывает)
                 }
             }
@@ -116,6 +163,8 @@ public class StudentOrderDaoImpl implements StudentOrderDao {
         stmt.setDate(start + 6, Date.valueOf(adult.getIssueDate()));
         stmt.setLong(start + 7, adult.getIssueDepartment().getOfficeId());
         setParamsForAddress(stmt, start + 8, adult);
+        stmt.setLong(start + 13, adult.getUniversity().getUniversityId());
+        stmt.setString(start + 14, adult.getStudentID());
     }
 
     private void setParamsForPerson(PreparedStatement stmt, int start, Person person) throws SQLException {

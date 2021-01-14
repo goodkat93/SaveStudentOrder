@@ -5,6 +5,7 @@ import studentorder.dao.StudentOrderDao;
 import studentorder.domain.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class SaveStudentOrder {
     public static void main(String[] args) throws Exception { // поменять если что (было DaoException)
@@ -44,7 +45,16 @@ public class SaveStudentOrder {
         StudentOrder s = buildStudentOrder(10);
         StudentOrderDao dao = new StudentOrderDaoImpl();
         Long id = dao.saveStudentOrder(s);
-        System.out.println(id);
+//        System.out.println(id);
+
+        List<StudentOrder> soList = dao.getStudentOrders();
+
+
+        for (StudentOrder studentOrder :
+                soList) {
+            System.out.println(studentOrder.getStudentOrderID());
+        }
+
     }
 
     static long saveStudentOrder(StudentOrder studentOrder) {
@@ -75,6 +85,8 @@ public class SaveStudentOrder {
         husband.setIssueDepartment(po1);
         husband.setStudentID("" + (100000 + id));
         husband.setAddress(address);
+        husband.setUniversity(new University(2L, " "));
+        husband.setStudentID("WW12345");
         //жена
         Adult wife = new Adult("Архипова", "Екатерина", "Романовна", LocalDate.of(1991, 3, 12));
         wife.setPassportSerial("" + (2000 + id));
@@ -84,6 +96,8 @@ public class SaveStudentOrder {
         wife.setIssueDepartment(po2);
         wife.setStudentID("" + (200000 + id));
         wife.setAddress(address);
+        wife.setUniversity(new University(1L, " "));
+        wife.setStudentID("WW12345");
         //ребенок 1
         Child child1 = new Child("Архипова", "Мирослава", "Олеговна", LocalDate.of(2018, 7, 9));
         child1.setCertificateNumber("" + (30000 + id));
